@@ -1,0 +1,116 @@
+---
+clickhouse_create_user: yes
+clickhouse_create_group: yes
+clickhouse_user_name: clickhouse
+clickhouse_group_name: clickhouse
+
+clickhouse_version: "*"
+clickhouse_repositories:
+  - name: clickhouse-stable
+    description: ClickHouse - Stable Repository
+    baseurl: http://repo.clickhouse.tech/rpm/stable/$basearch/
+    gpgkey: https://repo.clickhouse.tech/CLICKHOUSE-KEY.GPG
+    gpgcheck: yes
+    enabled: yes
+    file: clickhouse
+  - name: clickhouse-lts
+    description: ClickHouse - LTS Repository
+    baseurl: http://repo.clickhouse.tech/rpm/lts/$basearch/
+    gpgkey: https://repo.clickhouse.tech/CLICKHOUSE-KEY.GPG
+    gpgcheck: yes
+    enabled: no
+    file: clickhouse
+  - name: clickhouse-prestable
+    description: ClickHouse - Pre-stable Repository
+    baseurl: http://repo.clickhouse.tech/rpm/prestable/$basearch/
+    gpgkey: https://repo.clickhouse.tech/CLICKHOUSE-KEY.GPG
+    gpgcheck: yes
+    enabled: no
+    file: clickhouse
+  - name: clickhouse-testing
+    description: ClickHouse - Testing Repository
+    baseurl: http://repo.clickhouse.tech/rpm/testing/$basearch/
+    gpgkey: https://repo.clickhouse.tech/CLICKHOUSE-KEY.GPG
+    gpgcheck: yes
+    enabled: no
+    file: clickhouse
+    
+clickhouse_service_enabled: yes
+clickhouse_service_state: started
+clickhouse_service_restart_on_config_change: yes
+
+clickhouse_conf_dir: /etc/clickhouse-server
+clickhouse_log_dir: /var/log/clickhouse-server
+clickhouse_data_dir: /var/lib/clickhouse
+clickhouse_tmp_dir: "{{ clickhouse_data_dir }}/tmp"
+clickhouse_ssl_dir: "{{ clickhouse_conf_dir }}/ssl"
+clickhouse_access_control_path: "{{ clickhouse_data_dir }}/access"
+clickhouse_user_files_dir: "{{ clickhouse_data_dir }}/user_files"
+
+clickhouse_ssl_crt_file: "{{ clickhouse_ssl_dir }}/server.crt"
+clickhouse_ssl_key_file: "{{ clickhouse_ssl_dir }}/server.key"
+clickhouse_ssl_dhparams_file: "{{ clickhouse_ssl_dir }}/dhparams.pem"
+
+clickhouse_listen_addresses:
+  - "::1"
+  - "127.0.0.1"
+
+clickhouse_networks:
+  - "::1"
+  - "127.0.0.1"
+
+clickhouse_interserver_http: 9009
+
+clickhouse_config:
+  max_connections: 2048
+  keep_alive_timeout: 3
+  max_concurrent_queries: 100
+  uncompressed_cache_size: 8589934592
+  mark_cache_size: 5368709120
+  builtin_dictionaries_reload_interval: 3600
+  max_session_timeout: 3600
+  default_session_timeout: 60
+
+clickhouse_logger:
+  level: information
+  log: "{{ clickhouse_log_dir }}/clickhouse-server.log"
+  errorlog: "{{ clickhouse_log_dir }}/clickhouse-server.err.log"
+  size: 1000M
+  count: 10
+
+clickhouse_mlock_status: false
+
+clickhouse_kafka_config: []
+clickhouse_kafka_topics_config: []
+
+clickhouse_merge_tree_config: []
+
+clickhouse_profiles:
+ default:
+   max_memory_usage: 10000000000
+   use_uncompressed_cache: 0
+   load_balancing: random
+   max_partitions_per_insert_block: 100
+ readonly:
+   readonly: 1
+
+clickhouse_users:
+  - name: "default"
+    password: ""
+    networks: "{{ clickhouse_networks }}"
+    profile: "default"
+    quota: "default"
+    comment: "Default user for login if user not defined"
+
+clickhouse_quotas_intervals:
+  - duration: 3600
+    queries: 0
+    errors: 0
+    result_rows: 0
+    read_rows: 0
+    execution_time: 0
+
+clickhouse_quotas:
+  - name: "default"
+    intervals: "{{ clickhouse_quotas_intervals }}"
+    comment: "Default quota - count only"

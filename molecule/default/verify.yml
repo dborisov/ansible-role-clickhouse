@@ -1,0 +1,13 @@
+---
+- name: Verify
+  hosts: clickhouse
+  tasks:
+    - name: Gather the services facts
+      service_facts:
+
+    - name: Assert that Clickhouse service is running and enabled on boot
+      assert:
+        that:
+          - ansible_facts.services['clickhouse-server.service'].state == 'running'
+          - ansible_facts.services['clickhouse-server.service'].status == 'enabled'
+        quiet: yes

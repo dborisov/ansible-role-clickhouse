@@ -1,0 +1,149 @@
+---
+- name: Ensure {{ clickhouse_group_name }} group exists
+  group:
+    name: "{{ clickhouse_group_name }}"
+    system: yes
+  when: clickhouse_create_group
+
+- name: Ensure {{ clickhouse_user_name }} user exists
+  user:
+    name: "{{ clickhouse_user_name }}"
+    system: yes
+  when: clickhouse_create_user
+
+- name: Ensure clickhouse repositories exist
+  yum_repository:
+    name: "{{ item.name }}"
+    description: "{{ item.description }}"
+    baseurl: "{{ item.baseurl }}"
+    gpgkey: "{{ item.gpgkey }}"
+    gpgcheck: "{{ item.gpgcheck }}"
+    enabled: "{{ item.enabled }}"
+    file: "{{ item.file }}"
+  with_items: "{{ clickhouse_repositories }}"
+
+- name: Ensure clickhouse packages are installed
+  yum:
+    allow_downgrade: yes
+    name: "clickhouse-server-{{ clickhouse_version }}-*"
+
+- name: Ensure required directories exist
+  file:
+    dest: "{{ item }}"
+    owner: "{{ clickhouse_user_name }}"
+    group: "{{ clickhouse_group_name }}"
+    state: directory
+    recurse: yes
+  with_items:
+    - "{{ clickhouse_conf_dir }}"
+    - "{{ clickhouse_log_dir }}"
+    - "{{ clickhouse_data_dir }}"
+    - "{{ clickhouse_tmp_dir }}"
+    - "{{ clickhouse_user_files_dir }}"
+
+- name: Ensure clickhouse-server ssl directory exists
+  file:
+    path: "{{ clickhouse_ssl_dir }}"
+    state: directory
+    owner: "{{ clickhouse_user_name }}"
+    group: "{{ clickhouse_group_name }}"
+    mode: 0700
+
+- name: Render clickhouse-server config.xml template
+  template:
+    src: config.xml.j2
+    dest: "{{ clickhouse_conf_dir }}/config.xml"
+    owner: "{{ clickhouse_user_name }}"
+    group: "{{ clickhouse_group_name }}"
+    mode: 0640
+  notify:
+    - Restart clickhouse-server service
+
+- name: Render clickhouse-server users.xml template
+  template:
+    src: users.xml.j2
+    dest: "{{ clickhouse_conf_dir }}/users.xml"
+    owner: "{{ clickhouse_user_name }}"
+    group: "{{ clickhouse_group_name }}"
+    mode: 0640
+  notify:
+    - Restart clickhouse-server service
+
+- name: Ensure clickhouse-server config.d directory exists
+  file:
+    path: "{{ clickhouse_conf_dir }}/config.d"
+    state: directory
+    owner: "{{ clickhouse_user_name }}"
+    group: "{{ clickhouse_group_name }}"
+    mode: 0750
+
+- name: Render clickhouse-server remote-servers.xml template
+  template:
+    src: remote-servers.xml.j2
+    dest: "{{ clickhouse_conf_dir }}/config.d/remote-servers.xml"
+    owner: "{{ clickhouse_user_name }}"
+    group: "{{ clickhouse_group_name }}"
+    mode: 0644
+  notify:
+    - Restart clickhouse-server service
+  when: clickhouse_clusters | default([])
+
+- name: Render clickhouse-server macros.xml template
+  template:
+    src: macros.xml.j2
+    dest: "{{ clickhouse_conf_dir }}/config.d/macros.xml"
+    owner: "{{ clickhouse_user_name }}"
+    group: "{{ clickhouse_group_name }}"
+    mode: 0644
+  notify:
+    - Restart clickhouse-server service
+  when: clickhouse_macros | default([])
+
+- name: Render clickhouse-server zookeeper-servers.xml template
+  template:
+    src: zookeeper-servers.xml.j2
+    dest: "{{ clickhouse_conf_dir }}/config.d/zookeeper-servers.xml"
+    owner: "{{ clickhouse_user_name }}"
+    group: "{{ clickhouse_group_name }}"
+    mode: 0644
+  notify:
+    - Restart clickhouse-server service
+  when: clickhouse_zookeeper_servers | default([])
+
+- name: Render clickhouse-server kafka.xml template
+  template:
+    src: kafka.xml.j2
+    dest: "{{ clickhouse_conf_dir }}/config.d/kafka.xml"
+    owner: "{{ clickhouse_user_name }}"
+    group: "{{ clickhouse_group_name }}"
+    mode: 0644
+  notify:
+    - Restart clickhouse-server service
+  when: clickhouse_kafka_config | default([]) or clickhouse_kafka_topics_config | default([])
+
+- name: Copy SSL certificates
+  copy:
+    content: "{{ item.content }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ clickhouse_user_name }}"
+    group: "{{ clickhouse_group_name }}"
+    mode: 0600
+  with_items:
+    - content: "{{ clickhouse_ssl_crt }}"
+      dest: "{{ clickhouse_ssl_crt_file }}"
+    - content: "{{ clickhouse_ssl_key }}"
+      dest: "{{ clickhouse_ssl_key_file }}"
+    - content: "{{ clickhouse_ssl_dhparams }}"
+      dest: "{{ clickhouse_ssl_dhparams_file }}"
+  notify:
+    - Restart clickhouse-server service
+  when:
+    - clickhouse_ssl_crt is defined
+    - clickhouse_ssl_key is defined
+    - clickhouse_ssl_dhparams is defined
+
+- name: Ensure clickhouse-server service is {{ clickhouse_service_state }} and {% if clickhouse_service_enabled %}enabled{% else %}disabled{% endif %} on boot
+  systemd:
+    name: clickhouse-server
+    state: "{{ clickhouse_service_state }}"
+    enabled: "{{ clickhouse_service_enabled }}"

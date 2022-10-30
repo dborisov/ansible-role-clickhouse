@@ -1,0 +1,146 @@
+---
+- name: Converge
+  hosts: clickhouse
+  roles:
+    - role: dborisov.clickhouse
+      clickhouse_version: "{{ lookup('env', 'CLICKHOUSE_VERSION') }}"
+      clickhouse_generate_self_signed_cert: yes
+      clickhouse_https_port: 8443
+      clickhouse_tcp_secure_port: 9440
+      clickhouse_clusters:
+        - name: cluster
+          shards:
+            - internal_replication: yes
+              replicas:
+                - host: clickhouse-1.local
+                  port: 9440
+                  user: replication
+                  password: must_be_vault_encrypted 
+                - host: clickhouse-2.local
+                  port: 9440
+                  user: replication
+                  password: must_be_vault_encrypted
+      clickhouse_users:
+        - name: default
+          password: ""
+          networks: "{{ clickhouse_networks }}"
+          profile: default
+          quota: default
+          comment: Default user for login if user not defined
+        - name: replication
+          password: must_be_vault_encrypted
+          networks: "{{ clickhouse_networks }}"
+          profile: default
+          quota: default
+        - name: admin
+          password: must_be_vault_encrypted
+          networks: "{{ clickhouse_networks }}"
+          profile: default
+          quota: default
+          access_management: yes
+      clickhouse_listen_addresses:
+        - "0.0.0.0"
+      clickhouse_networks:
+        - "::/0"
+        - "0.0.0.0/0"
+      clickhouse_zookeeper_servers:
+        - host: zookeeper.local
+          port: 2181
+      clickhouse_ssl_crt: |
+        -----BEGIN CERTIFICATE-----
+        MIIFPTCCAyWgAwIBAgIULKFeYxuyO5qQyGsidPZpq4iyGGowDQYJKoZIhvcNAQEL
+        BQAwGDEWMBQGA1UEAwwNY2xpY2tob3VzZS1jYTAeFw0yMjEwMzAwOTA5MTVaFw0z
+        MjEwMjcwOTA5MTVaMBwxGjAYBgNVBAMMEWNsaWNraG91c2Utc2VydmVyMIICIjAN
+        BgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEApRXVnwwfYdNF65sRvhRzDzh6ldWF
+        51/T6TeNoBuYQiBpy/eTmLfa8qWruEfpmTS5AkY7R1nYR3KPUZihvomUdvopVXdg
+        4Fyi34WTjhKAzL3hZF6k7OkGHKnS5J+hOEWhdRCefmG4Zy9amAS9dGlxvI2CxNwf
+        ybF09r+6PG4d4WdadJsCSHpxk2gKdBbhF/b4FUpnU3z6t4vNygfwQDvHRPFf7o1z
+        OVXl6YnHcF+8/k02zaqa5AbbMh3vZE/F9YadtCyg4sVX4nmyjDT6rdi2yJmkCu1r
+        8Qe7N3WgPiy5+jmcpqFBgiiOcTjmAvrNBgF2AD24lZUkgKsk97Qey5mRK7difRgv
+        3caRPTCpnobJcC2wgaBAK9v/Gwxcx5xI1Ng/Ab0/RZA5B2gJq4coirOjsJTnifIH
+        1rtBUdacoiCQy/8yaTm11Ls4CcO+weYh2v7IJVhDa4zuZupxLHCqiGNEqxtboHvg
+        HYLBLg2tTiwfsNexC5qteF4NE7ym8Grx/7hBPDyiVej4acnLZrGIw3pAmlFOFaJ6
+        m9dCn1sxSsXDiaejZbhHBE7yuftV/1p4wCFCUnTlFH9BKLFNyjccwmGsKsMKtaXb
+        ddo/NG/LXuGjUu9kUZGUn41ar++c5rWx6ijnFXXXYPkL0mtTpgo1R1tZYjE/Z//U
+        Mx4G/IsxBQWhaSUCAwEAAaN7MHkwNwYDVR0RBDAwLoIVY2VudG9zLTctY2xpY2to
+        b3VzZS0xghVjZW50b3MtNy1jbGlja2hvdXNlLTIwHQYDVR0OBBYEFO+9naLhqUCT
+        n/pjbYN33Sprc9VvMB8GA1UdIwQYMBaAFPlGK6zIzbxVc+lBfcF4qDux0z5hMA0G
+        CSqGSIb3DQEBCwUAA4ICAQCQ7xbWDvpIa43L9UF/a3aShuUiiZp4ArVmUxdd41OC
+        kpf42ENzmwfp45bnQAZZGNmDUSIOxBclx2o0WnopHGmdHss0VL/T/v69V6Yd76u9
+        KndOrRZjX38WSOAf98e3QmSGEnahtkiv9JE4i4ahXQIZYTJcQPX5du7owqi8w4JM
+        GdY9aM+IHaP+/noYex9YrLfRdeYUYiUDNTw337s9Bv9XhKPojDc+kGrDwEgXJzho
+        Bs+MOPhvoeVDYOhOSSykWU9AVKd1itQZ7y3q+UtneUcc/keYVHfsINmiFiX6Z8JY
+        R0TFaV0kWsxM+GQY2ahrXzZvlnHcyY5oRTClG4Zy/GPePO3USIG5IW6ZIEHJ/jle
+        e84re8zLdhm274hNgXUbWKCWsEs5e5+PDAx4csWb5XMDmBDrrnXLXo/6GpVYdwfT
+        SPECcp6YgXPVWv/Zx4qKljkIDtTb3T1C2x4m6Fi08+g2i2ypWKRODzza8rGU6iZn
+        7+pxArIIp7zYXU9J2G6uhSvNwAiiDorCXmQ3xn/d2prUJV4Fd/4Ss/XYxhQ86vJW
+        LIuGG5MOiFe9hmDmpdHsAhcHRDaSxu3NVwpsjYIYZWZLAs2r9oMLNQbiaU8c2G/y
+        RqINhreZaZdApIpMSoz1sz90u/jwwQ4o6WK8zWLWsKH2nXoQlEowGUGza9TtL+zy
+        Xg==
+        -----END CERTIFICATE-----
+      clickhouse_ssl_key: |
+        -----BEGIN RSA PRIVATE KEY-----
+        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
+        -----END RSA PRIVATE KEY-----
+      clickhouse_ssl_dhparams: |
+        -----BEGIN DH PARAMETERS-----
+        MIICCAKCAgEA6Dyxh54ptB2jH5QbMStfMsVB+I+ME/uHAKOTxutEa1kBavgwLvE8
+        aaQt3BarkS+AHzwu8k7v0A7CmOU1x5btVdFhojLj3/rqGQj7yhRF0fDldOw3s/cS
+        MbeUYQc30AC//6tv52m3WU79LcQLys9I3fXEUAbZYcsr56HZIGdye4zK+MNeH9wE
+        wSPNWpSYR6n1yJaBg273j0m3UcuRvTPv7P2UYKYigr+8hKIbhMQmIHHCpIr99k4K
+        JUowgJ6kx6Bc4x7iNR2Nl9y35JR3CQ7CXMGh7gv1N296jzncVie9mklPtxC1Pxsr
+        ML+1xmghXypJepIkQr5tdvmb+gTYCPguysXNQgtQoBzlcLnrab6rtKjCs4sIUpXH
+        j6J4u0IcPPNdhdNi0vQrAxragbhTCp+GuN2e6TvQjuzFZll8z7n8nh4evNUwUdCp
+        RJVfl1P7ZqtwoFL5VfsH1SFGN4XlP9WjYl/7GdsZidVUwlukmt2GPYZDdOZ6C4rJ
+        /sa6uso0oYznfoIwr7rJPdefw1lvIBJh2YbW2FiQNOgCQS3+AoS/uvzSbw2N6kaA
+        ns2JnBSv+0Bz/Mnh1dA18RzqHGe9kFeSvHPyJhdUW+Jhi9LeLgI7K/dUiAGQz63y
+        5+yWX3rr0Vg1qADcDBJ77wGdpDu2AWbR+w+AhEyrvkI32lzaEMAHETsCAQI=
+        -----END DH PARAMETERS-----

@@ -1,0 +1,78 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: "${IMAGE:-rockylinux}-${TAG:-8}-clickhouse-1"
+    hostname: clickhouse-1.local
+    image: "${IMAGE:-rockylinux}:${TAG:-8}"
+    pre_build_image: true
+    command: /sbin/init
+    tmpfs:
+      - /run
+      - /tmp
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    published_ports:
+      - "0.0.0.0:9000:9000/tcp"
+      - "0.0.0.0:8123:8123/tcp"
+    networks:
+      - name: local
+    groups:
+      - clickhouse
+  - name: "${IMAGE:-rockylinux}-${TAG:-8}-clickhouse-2"
+    hostname: clickhouse-2.local
+    image: "${IMAGE:-rockylinux}:${TAG:-8}"
+    pre_build_image: true
+    command: /sbin/init
+    tmpfs:
+      - /run
+      - /tmp
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    published_ports:
+      - "0.0.0.0:9001:9000/tcp"
+      - "0.0.0.0:8124:8123/tcp"
+    networks:
+      - name: local
+    groups:
+      - clickhouse
+  - name: "${IMAGE:-rockylinux}-${TAG:-8}-zookeeper"
+    hostname: zookeeper.local
+    image: "${IMAGE:-rockylinux}:${TAG:-8}"
+    pre_build_image: true
+    command: /sbin/init
+    tmpfs:
+      - /run
+      - /tmp
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    published_ports:
+      - "0.0.0.0:2181:2181/tcp"
+    networks:
+      - name: local
+    groups:
+      - zookeeper
+provisioner:
+  name: ansible
+  env:
+    CLICKHOUSE_VERSION: ${CLICKHOUSE_VERSION:-22.2.2.1}
+  inventory:
+    host_vars:
+      ${IMAGE:-rockylinux}-${TAG:-8}-zookeeper:
+        zookeeper_id: 1
+      ${IMAGE:-rockylinux}-${TAG:-8}-clickhouse-1:
+        clickhouse_macros:
+          shard: 1
+          replica: clickhouse-1.local
+      ${IMAGE:-rockylinux}-${TAG:-8}-clickhouse-2:
+        clickhouse_macros:
+          shard: 1
+          replica: clickhouse-2.local
+verifier:
+  name: ansible
+lint: |
+  set -e
+  yamllint .
+  ansible-lint

@@ -1,0 +1,47 @@
+---
+- name: Converge
+  hosts: clickhouse
+  roles:
+    - role: dborisov.clickhouse
+      clickhouse_version: "{{ lookup('env', 'CLICKHOUSE_VERSION') }}"
+      clickhouse_http_port: 8123
+      clickhouse_tcp_port: 9000
+      clickhouse_clusters:
+        - name: cluster
+          shards:
+            - internal_replication: yes
+              replicas:
+                - host: clickhouse-1.local
+                  port: 9000
+                  user: replication
+                  password: must_be_vault_encrypted 
+                - host: clickhouse-2.local
+                  port: 9000
+                  user: replication
+                  password: must_be_vault_encrypted
+      clickhouse_users:
+        - name: default
+          password: ""
+          networks: "{{ clickhouse_networks }}"
+          profile: default
+          quota: default
+          comment: Default user for login if user not defined
+        - name: replication
+          password: must_be_vault_encrypted
+          networks: "{{ clickhouse_networks }}"
+          profile: default
+          quota: default
+        - name: admin
+          password: must_be_vault_encrypted
+          networks: "{{ clickhouse_networks }}"
+          profile: default
+          quota: default
+          access_management: yes
+      clickhouse_listen_addresses:
+        - "0.0.0.0"
+      clickhouse_networks:
+        - "::/0"
+        - "0.0.0.0/0"
+      clickhouse_zookeeper_servers:
+        - host: zookeeper.local
+          port: 2181

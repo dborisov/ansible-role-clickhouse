@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!-- {{ ansible_managed }} -->
+<yandex>
+  <remote_servers>
+{% for cluster in clickhouse_clusters %}
+    <{{ cluster.name }}>
+{% for shard in cluster.shards %}
+      <shard>
+        <weight>{{ shard.weight | default(1) }}</weight>
+        <internal_replication>{{ shard.internal_replication | default('true') | ternary('true', 'false', 'true') | lower }}</internal_replication>
+{% for replica in shard.replicas %}
+        <replica>
+          <priority>{{ replica.priority | default(1) }}</priority>
+          <host>{{ replica.host }}</host>
+          <port>{{ replica.port | default(clickhouse_tcp_port) }}</port>
+          <secure>{{ replica.secure | default(0) | int }}</secure>
+          <user>{{ replica.user | default('default') }}</user>
+          <password>{{ replica.password | default('') }}</password>
+          <compression>{{ replica.compression | default(1) | int }}</compression>
+        </replica>
+{% endfor %}
+      </shard>
+{% endfor %}
+    </{{ cluster.name }}>
+{% endfor %}
+  </remote_servers>
+</yandex>

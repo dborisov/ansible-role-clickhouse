@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!-- {{ ansible_managed }} -->
+<yandex>
+{% if clickhouse_kafka_config is defined %}
+    <kafka>
+        {% for config in clickhouse_kafka_config %}
+        <{{ config }}>{{ clickhouse_kafka_config[config] }}</{{ config }}>
+        {% endfor %}
+    </kafka>
+{% endif %}
+
+{% for kafka_topic in clickhouse_kafka_topics_config %}
+    <kafka_{{ kafka_topic }}>
+    {% for item in clickhouse_kafka_topics_config[kafka_topic] %}
+        <{{ item }}>{{ clickhouse_kafka_topics_config[kafka_topic][item] }}</{{ item }}>
+    {% endfor %}
+    </kafka_{{ kafka_topic }}>
+{% endfor %}
+</yandex>
+
